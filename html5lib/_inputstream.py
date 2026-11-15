@@ -89,7 +89,15 @@ class BufferedStream(object):
         return sum([len(item) for item in self.buffer])
 
     def _readStream(self, bytes):
-        data = self.stream.read(bytes)
+        # The underlying stream is allowed to return fewer bytes than
+        # requested (a "short read", e.g. sockets and HTTPResponse), so keep
+        # reading until the request is satisfied or the stream is exhausted.
+        data = b""
+        while len(data) < bytes:
+            chunk = self.stream.read(bytes - len(data))
+            if not chunk:
+                break
+            data += chunk
         self.buffer.append(data)
         self.position[0] += 1
         self.position[1] = len(data)
