@@ -1,0 +1,476 @@
+# Recovery fixtures for misplaced-content handling in tables.
+#
+# Every expected tree below was derived from the HTML parsing algorithm rather
+# than from any html5lib backend:
+#
+#   * foster parenting, the adoption agency algorithm, active formatting
+#     element reconstruction and the foreign-content tree construction rules
+#     were applied by hand to each source snippet;
+#   * where the official html5lib-tests suite has an equivalent case the
+#     front element interactions were compared against its expectation (for
+#     example adoption01.dat #10 `<table><a>1<td>2</td>3</table>` and
+#     tests1.dat #19 `<b><table><td><i></table>` cover the same shapes);
+#   * the resulting trees were cross-checked against a separate browser-grade
+#     HTML parser so a misreading of the algorithm would show up before the
+#     fixture was committed.
+#
+# No tree here was copied from the etree, DOM or lxml backend: the point of
+# the exercise is that the expectations have an independent source, so that
+# "the first backend's output" can never become the answer key.
+#
+# Sections:
+#   #data                the HTML to parse
+#   #mode                "document" (default) or "fragment"
+#   #document-fragment   container element for fragment cases (default "div")
+#   #description         why the case is interesting
+#   #document            the expected tree
+#
+# Format of a tree line: "|", two spaces per nesting level, then one of
+#   <name> or <prefix name>          a start tag; a bare name is HTML, and
+#                                    html/svg/math/xml/xlink/xmlns prefixes
+#                                    select the others
+#   prefix name="value"              an attribute of the element above
+#   "text"                           a run of text
+#   <!-- data -->                    a comment
+#   <!DOCTYPE name>                  a doctype
+
+#data
+<!doctype html><table class="grid"><b class="fmt">stray<tr><td class="c1">one</td></tr></table>
+#mode
+document
+#description
+A formatting element opened directly in the "in table" insertion mode is foster parented: the element and its text move in front of the table while the row content stays inside the cell.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <b>
+|       class="fmt"
+|       "stray"
+|     <table>
+|       class="grid"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c1"
+|             "one"
+
+#data
+<!doctype html><p><b class="fmt">one<table class="t"><tr><td>two</td></tr></table>three</p>
+#mode
+document
+#description
+An unclosed formatting element is closed by the table, then reconstructed after it: "one" stays in the <b> inside <p>, "three" lands in a fresh <b> after the table, and the trailing </p> is adopted inside that reconstructed <b>.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       <b>
+|         class="fmt"
+|         "one"
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             "two"
+|     <b>
+|       class="fmt"
+|       "three"
+|       <p>
+
+#data
+<!doctype html><table class="t"><b class="fmt">lead<tr><td class="c">cell</td></tr>trail</b></table>
+#mode
+document
+#description
+Foster parenting and formatting-element reconstruction overlap in one snippet: both text runs escape the table and each gets its own reconstructed <b>, in source order.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <b>
+|       class="fmt"
+|       "lead"
+|     <b>
+|       class="fmt"
+|       "trail"
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             "cell"
+
+#data
+<!doctype html><table class="t"><tr><td class="c"><b class="a" data-k="1"><p>a</b>b</td></tr></table>
+#mode
+document
+#description
+The adoption agency algorithm clones a formatting element that was still open across a <p>: the empty original <b> stays before the paragraph, the clone with the same attributes wraps "a", and "b" is the paragraph's own text.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             <b>
+|               class="a"
+|               data-k="1"
+|             <p>
+|               <b>
+|                 class="a"
+|                 data-k="1"
+|                 "a"
+|               "b"
+
+#data
+<!doctype html><table class="t"><tr><td class="c1"><b class="a">one<td class="c2">two</b></table>
+#mode
+document
+#description
+A formatting element is open while the parser moves to the next cell; reconstruction does not leak it into the second cell, so "two" is plain text and the second <td> keeps its attribute.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c1"
+|             <b>
+|               class="a"
+|               "one"
+|           <td>
+|             class="c2"
+|             "two"
+
+#data
+<!doctype html><table class="outer"><tr><td class="oc"><b class="fmt"><table class="inner"><tr><td class="ic">x<tr><td class="iy">y</td></tr></table></b></td></tr></table>
+#mode
+document
+#description
+Nested tables under an open formatting element: the inner table and both of its rows stay inside the <b> in the outer cell, so neither row is foster parented out.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="outer"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="oc"
+|             <b>
+|               class="fmt"
+|               <table>
+|                 class="inner"
+|                 <tbody>
+|                   <tr>
+|                     <td>
+|                       class="ic"
+|                       "x"
+|                   <tr>
+|                     <td>
+|                       class="iy"
+|                       "y"
+
+#data
+<!doctype html><table class="t"><svg class="icon"><circle r="1"/><desc>d</desc></svg><tr><td class="c">cell</td></tr></table>
+#mode
+document
+#description
+Foreign content opened in the "in table" mode is foster parented as a whole SVG subtree, and its children stay in the SVG namespace; the following row is still parsed as a row.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       class="icon"
+|       <svg circle>
+|         r="1"
+|       <svg desc>
+|         "d"
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             "cell"
+
+#data
+<!doctype html><table class="t"><math class="f"><mi>x</mi></math><tr><td class="c">cell</td></tr></table>
+#mode
+document
+#description
+MathML content in the "in table" mode is foster parented too, and its children keep the MathML namespace rather than the HTML one.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <math math>
+|       class="f"
+|       <math mi>
+|         "x"
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             "cell"
+
+#data
+<!doctype html><table class="t"><tr><td class="c"><svg class="icon"><g>s</g></svg>tail</td></tr></table>
+#mode
+document
+#description
+A closed SVG subtree inside a cell is followed by HTML text; the text stays inside the cell and after the SVG element instead of being absorbed into it.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             <svg svg>
+|               class="icon"
+|               <svg g>
+|                 "s"
+|             "tail"
+
+#data
+<!doctype html><table class="t"><tr><td class="c"><svg class="icon" xmlns:xlink="http://www.w3.org/1999/xlink"><use xlink:href="#a"/></svg></td></tr></table>
+#mode
+document
+#description
+Namespaced attributes on foreign content inside a table cell survive foster-adjoining-free parsing: xmlns:xlink is an xmlns-namespace attribute and xlink:href is in the XLink namespace, and neither is dropped or moved to an HTML element.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="c"
+|             <svg svg>
+|               class="icon"
+|               xmlns xlink="http://www.w3.org/1999/xlink"
+|               <svg use>
+|                 xlink href="#a"
+
+#data
+<!doctype html><table class="t"><tr><td class="oc"><svg class="wrapper"><foreignObject><div class="host"><b class="fmt">x</b><table class="inner"><tr><td class="ic">y</td></tr></table></div></foreignObject></svg></td></tr></table>
+#mode
+document
+#description
+An HTML integration point inside foreign content establishes a nested table: the <div> and everything below it switch back to the HTML namespace while the <svg>/<foreignObject> wrappers do not.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="oc"
+|             <svg svg>
+|               class="wrapper"
+|               <svg foreignObject>
+|                 <div>
+|                   class="host"
+|                   <b>
+|                     class="fmt"
+|                     "x"
+|                   <table>
+|                     class="inner"
+|                     <tbody>
+|                       <tr>
+|                         <td>
+|                           class="ic"
+|                           "y"
+
+#data
+<!doctype html><table class="t"><b class="fmt">lead<tr><td class="oc"><svg class="wrapper"><foreignObject><table class="inner"><tr><td class="ic">in</td></tr></table></foreignObject></svg></td></tr>trail</b></table>
+#mode
+document
+#description
+All of the recovery rules at once: the formatting element is foster parented in two separate pieces, and inside the surviving cell a nested table sits under an SVG foreignObject integration point, so HTML and SVG elements alternate in one subtree.
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <b>
+|       class="fmt"
+|       "lead"
+|     <b>
+|       class="fmt"
+|       "trail"
+|     <table>
+|       class="t"
+|       <tbody>
+|         <tr>
+|           <td>
+|             class="oc"
+|             <svg svg>
+|               class="wrapper"
+|               <svg foreignObject>
+|                 <table>
+|                   class="inner"
+|                   <tbody>
+|                     <tr>
+|                       <td>
+|                         class="ic"
+|                         "in"
+
+#data
+<b class="fmt">stray<tr><td class="c">cell</td></tr></b>
+#mode
+fragment
+#document-fragment
+table
+#description
+Fragment parsing with a <table> context: the formatting element and its text move in front of the implied <tbody>, and the row content is built inside it.
+#document
+| <b>
+|   class="fmt"
+|   "stray"
+| <tbody>
+|   <tr>
+|     <td>
+|       class="c"
+|       "cell"
+
+#data
+<b class="fmt">stray<tr><td>cell</td></tr></b>
+#mode
+fragment
+#document-fragment
+td
+#description
+Fragment parsing with a <td> context: the stray <tr>/<td> markup is ignored rather than foster parented (there is no table in the stack), so both runs of text end up as adjacent text inside the formatting element.
+#document
+| <b>
+|   class="fmt"
+|   "straycell"
+
+#data
+<b class="fmt"><table class="inner"><tr><td class="ic">x<tr><td class="iy">y</table></b>
+#mode
+fragment
+#document-fragment
+td
+#description
+A fragment parsed with a <td> context may still contain a nested table; the formatting element wraps it, and both inner rows stay inside the nested table's <tbody>.
+#document
+| <b>
+|   class="fmt"
+|   <table>
+|     class="inner"
+|     <tbody>
+|       <tr>
+|         <td>
+|           class="ic"
+|           "x"
+|       <tr>
+|         <td>
+|           class="iy"
+|           "y"
+
+#data
+<b class="fmt"><table class="inner"><tr><td class="ic">x</td></tr></table></b>
+#mode
+fragment
+#document-fragment
+table
+#description
+With a <table> context and no table on the stack, opening a <b> produces a foster-parented empty formatting element while the nested table still becomes a <tbody> sibling.
+#document
+| <b>
+|   class="fmt"
+| <tbody>
+|   <tr>
+|     <td>
+|       class="ic"
+|       "x"
+
+#data
+<math class="f"><mi>m</mi></math>tail
+#mode
+fragment
+#document-fragment
+td
+#description
+MathML in a table-cell fragment keeps its own namespace, and the trailing HTML text stays outside the MathML subtree.
+#document
+| <math math>
+|   class="f"
+|   <math mi>
+|     "m"
+| "tail"
+
+#data
+<svg class="icon"><g>s</g></svg>tail
+#mode
+fragment
+#document-fragment
+td
+#description
+SVG in a table-cell fragment keeps its namespace, and the trailing text stays at the fragment level rather than inside the SVG subtree.
+#document
+| <svg svg>
+|   class="icon"
+|   <svg g>
+|     "s"
+| "tail"
+
+#data
+<div class="wrap"><b class="fmt">a</b><table class="t"><tr><td class="c"><i>stay</i></td></tr></table>b</div>
+#mode
+fragment
+#document-fragment
+div
+#description
+Ordinary fragment parsing with no recovery pressure: the table, its cell and the formatting elements keep their nesting and order.
+#document
+| <div>
+|   class="wrap"
+|   <b>
+|     class="fmt"
+|     "a"
+|   <table>
+|     class="t"
+|     <tbody>
+|       <tr>
+|         <td>
+|           class="c"
+|           <i>
+|             "stay"
+|   "b"
