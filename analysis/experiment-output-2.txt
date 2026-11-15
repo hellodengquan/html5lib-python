@@ -1,0 +1,73 @@
+EXP 18: fragment WITHOUT outer <svg> tag, container='svg' vs 'div'
+--- container='div' ---
+|<DOCUMENT_FRAGMENT>
+|  <html circle>
+|    viewbox="0 0 1 1"
+|    <html foreignobject>
+|      <html p>
+|        "x"
+serialized: <circle viewbox="0 0 1 1"><foreignobject><p>x</p></foreignobject></circle>
+errors: [((1, 27), 'non-void-element-with-trailing-solidus'), ((1, 66), 'expected-closing-tag-but-got-eof')]
+--- container='svg' ---
+|<DOCUMENT_FRAGMENT>
+|  <html circle>
+|    viewbox="0 0 1 1"
+|    <html foreignobject>
+|      <html p>
+|        "x"
+serialized: <circle viewbox="0 0 1 1"><foreignobject><p>x</p></foreignobject></circle>
+errors: [((1, 27), 'non-void-element-with-trailing-solidus'), ((1, 66), 'expected-closing-tag-but-got-eof')]
+
+EXP 19: fragment WITHOUT outer <math> tag, container='math' vs 'div'
+--- container='div' ---
+|<DOCUMENT_FRAGMENT>
+|  <html mi>
+|    definitionurl="d"
+|    "x"
+|  <html annotation-xml>
+|    encoding="text/html"
+|    <html p>
+|      "hi"
+serialized: <mi definitionurl="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml>
+errors: []
+--- container='math' ---
+|<DOCUMENT_FRAGMENT>
+|  <html mi>
+|    definitionurl="d"
+|    "x"
+|  <html annotation-xml>
+|    encoding="text/html"
+|    <html p>
+|      "hi"
+serialized: <mi definitionurl="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml>
+errors: []
+
+EXP 20: breakout from foreign content: '<svg><p>html</p></svg>' and <table> inside svg
+|<html html>
+|  <html head>
+|  <html body>
+|    <svg svg>
+|      <svg desc>
+|        "svg text"
+|    <html p>
+|      "para"
+|    <html table>
+|      <html tbody>
+|        <html tr>
+|          <html td>
+|            "t"
+serialized: <html><head></head><body><svg><desc>svg text</desc></svg><p>para</p><table><tbody><tr><td>t</td></tr></tbody></table></body></html>
+errors: [((1, 5), 'expected-doctype-but-got-start-tag'), ((1, 29), 'unexpected-html-element-in-foreign-content'), ((1, 77), 'unexpected-end-tag')]
+
+EXP 21: <select> fragment containing <table> (inSelect swallows table tags)
+|<DOCUMENT_FRAGMENT>
+|  <html select>
+|    <html option>
+|      "a"
+|    "x"
+serialized: <select><option>a</option>x</select>
+errors: [((1, 33), 'unexpected-start-tag-in-select'), ((1, 37), 'unexpected-start-tag-in-select'), ((1, 41), 'unexpected-start-tag-in-select'), ((1, 47), 'unexpected-end-tag-in-select'), ((1, 52), 'unexpected-end-tag-in-select'), ((1, 60), 'unexpected-end-tag-in-select')]
+
+EXP 22: etree vs dom backend on the same SVG fragment
+etree -> <svg viewBox="0 0 1 1"><a href="#x">t</a></svg>
+dom -> <svg viewBox="0 0 1 1"><a href="#x">t</a></svg>

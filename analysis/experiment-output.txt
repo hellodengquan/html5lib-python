@@ -1,0 +1,453 @@
+html5lib from: /Users/quan/Downloads/job/code-annotation/fb2-workspace/hellodengquan/0028-html5lib-python-6-e3494854/html5lib/__init__.py
+
+========================================================================
+EXP 1: TABLE fragment  '<table>lead<tr><td>cell</td></tr></table>tail'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    "lead"
+|    <html table>
+|      <html tbody>
+|        <html tr>
+|          <html td>
+|            "cell"
+|    "tail"
+serialized: <html><head></head><body>lead<table><tbody><tr><td>cell</td></tr></tbody></table>tail</body></html>
+parse errors: ['(1, 7) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  "lead"
+|  <html table>
+|    <html tbody>
+|      <html tr>
+|        <html td>
+|          "cell"
+|  "tail"
+serialized: lead<table><tbody><tr><td>cell</td></tr></tbody></table>tail
+
+--- parseFragment(container='table') ---
+|<DOCUMENT_FRAGMENT>
+|  "lead"
+|  <html tbody>
+|    <html tr>
+|      <html td>
+|        "cell"
+|  "tail"
+serialized: lead<tbody><tr><td>cell</td></tr></tbody>tail
+parse errors: ['(1, 7) unexpected-start-tag-implies-end-tag', '(1, 7) XXX-undefined-error', '(1, 41) XXX-undefined-error']
+
+========================================================================
+EXP 2: TABLE INTERNALS fragment  '<tr><td>cell</td></tr>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    "cell"
+serialized: <html><head></head><body>cell</body></html>
+parse errors: ['(1, 4) expected-doctype-but-got-start-tag', '(1, 4) unexpected-start-tag-ignored', '(1, 8) unexpected-start-tag-ignored', '(1, 17) unexpected-end-tag', '(1, 22) unexpected-end-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  "cell"
+serialized: cell
+parse errors: ['(1, 4) unexpected-start-tag-ignored', '(1, 8) unexpected-start-tag-ignored', '(1, 17) unexpected-end-tag', '(1, 22) unexpected-end-tag']
+
+--- parseFragment(container='table') ---
+|<DOCUMENT_FRAGMENT>
+|  <html tbody>
+|    <html tr>
+|      <html td>
+|        "cell"
+serialized: <tbody><tr><td>cell</td></tr></tbody>
+parse errors: ['(1, 22) eof-in-table']
+
+========================================================================
+EXP 3: TABLE fragment with foster-parented text  '<table>hello<td>x</td></table>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    "hello"
+|    <html table>
+|      <html tbody>
+|        <html tr>
+|          <html td>
+|            "x"
+serialized: <html><head></head><body>hello<table><tbody><tr><td>x</td></tr></tbody></table></body></html>
+parse errors: ['(1, 7) expected-doctype-but-got-start-tag', '(1, 16) unexpected-cell-in-table-body']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  "hello"
+|  <html table>
+|    <html tbody>
+|      <html tr>
+|        <html td>
+|          "x"
+serialized: hello<table><tbody><tr><td>x</td></tr></tbody></table>
+parse errors: ['(1, 16) unexpected-cell-in-table-body']
+
+--- parseFragment(container='table') ---
+|<DOCUMENT_FRAGMENT>
+|  "hello"
+|  <html tbody>
+|    <html tr>
+|      <html td>
+|        "x"
+serialized: hello<tbody><tr><td>x</td></tr></tbody>
+parse errors: ['(1, 7) unexpected-start-tag-implies-end-tag', '(1, 7) XXX-undefined-error', '(1, 16) unexpected-cell-in-table-body', '(1, 30) XXX-undefined-error']
+
+========================================================================
+EXP 4: SELECT fragment  '<select><option>one<option>two</select><p>after</p>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html select>
+|      <html option>
+|        "one"
+|      <html option>
+|        "two"
+|    <html p>
+|      "after"
+serialized: <html><head></head><body><select><option>one</option><option>two</option></select><p>after</p></body></html>
+parse errors: ['(1, 8) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  <html select>
+|    <html option>
+|      "one"
+|    <html option>
+|      "two"
+|  <html p>
+|    "after"
+serialized: <select><option>one</option><option>two</option></select><p>after</p>
+
+--- parseFragment(container='select') ---
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "one"
+|  <html option>
+|    "twoafter"
+serialized: <option>one</option><option>twoafter</option>
+parse errors: ['(1, 8) unexpected-select-in-select', '(1, 8) XXX-undefined-error', '(1, 39) XXX-undefined-error', '(1, 42) unexpected-start-tag-in-select', '(1, 51) unexpected-end-tag-in-select', '(1, 51) eof-in-select']
+
+========================================================================
+EXP 5: bare OPTION fragment  '<option>one<option>two'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html option>
+|      "one"
+|    <html option>
+|      "two"
+serialized: <html><head></head><body><option>one</option><option>two</option></body></html>
+parse errors: ['(1, 8) expected-doctype-but-got-start-tag', '(1, 22) expected-closing-tag-but-got-eof']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "one"
+|  <html option>
+|    "two"
+serialized: <option>one</option><option>two</option>
+parse errors: ['(1, 22) expected-closing-tag-but-got-eof']
+
+--- parseFragment(container='select') ---
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "one"
+|  <html option>
+|    "two"
+serialized: <option>one</option><option>two</option>
+parse errors: ['(1, 22) eof-in-select']
+
+========================================================================
+EXP 6: SELECT inside TABLE  '<table><tr><td><select><option>a</select></td></tr></table>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html table>
+|      <html tbody>
+|        <html tr>
+|          <html td>
+|            <html select>
+|              <html option>
+|                "a"
+serialized: <html><head></head><body><table><tbody><tr><td><select><option>a</option></select></td></tr></tbody></table></body></html>
+parse errors: ['(1, 7) expected-doctype-but-got-start-tag']
+
+========================================================================
+EXP 7: TABLE markup inside SELECT  '<select><option>a</option><table><tr><td>x</td></tr></table></select>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html select>
+|      <html option>
+|        "a"
+|      "x"
+serialized: <html><head></head><body><select><option>a</option>x</select></body></html>
+parse errors: ['(1, 8) expected-doctype-but-got-start-tag', '(1, 33) unexpected-start-tag-in-select', '(1, 37) unexpected-start-tag-in-select', '(1, 41) unexpected-start-tag-in-select', '(1, 47) unexpected-end-tag-in-select', '(1, 52) unexpected-end-tag-in-select', '(1, 60) unexpected-end-tag-in-select']
+
+--- parseFragment(container='select') ---
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "a"
+|  "x"
+serialized: <option>a</option>x
+parse errors: ['(1, 8) unexpected-select-in-select', '(1, 8) XXX-undefined-error', '(1, 33) unexpected-start-tag-in-select', '(1, 37) unexpected-start-tag-in-select', '(1, 41) unexpected-start-tag-in-select', '(1, 47) unexpected-end-tag-in-select', '(1, 52) unexpected-end-tag-in-select', '(1, 60) unexpected-end-tag-in-select', '(1, 69) XXX-undefined-error']
+
+========================================================================
+EXP 8: SVG fragment with viewBox/xlink/foreignObject
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <svg svg>
+|      viewBox="0 0 10 10"
+|      <svg circle>
+|        xlink href="#a"
+|      <svg foreignObject>
+|        <html p>
+|          "html"
+serialized: <html><head></head><body><svg viewBox="0 0 10 10"><circle href="#a"></circle><foreignObject><p>html</p></foreignObject></svg></body></html>
+parse errors: ['(1, 25) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  <svg svg>
+|    viewBox="0 0 10 10"
+|    <svg circle>
+|      xlink href="#a"
+|    <svg foreignObject>
+|      <html p>
+|        "html"
+serialized: <svg viewBox="0 0 10 10"><circle href="#a"></circle><foreignObject><p>html</p></foreignObject></svg>
+
+--- parseFragment(container='svg') ---
+|<DOCUMENT_FRAGMENT>
+|  <svg svg>
+|    viewBox="0 0 10 10"
+|    <svg circle>
+|      xlink href="#a"
+|    <svg foreignObject>
+|      <html p>
+|        "html"
+serialized: <svg viewBox="0 0 10 10"><circle href="#a"></circle><foreignObject><p>html</p></foreignObject></svg>
+
+========================================================================
+EXP 9: lowercase SVG tag names  '<svg><foreignobject><p>x</p></foreignobject></svg>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <svg svg>
+|      <svg foreignObject>
+|        <html p>
+|          "x"
+serialized: <html><head></head><body><svg><foreignObject><p>x</p></foreignObject></svg></body></html>
+parse errors: ['(1, 5) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='svg') ---
+|<DOCUMENT_FRAGMENT>
+|  <svg svg>
+|    <svg foreignObject>
+|      <html p>
+|        "x"
+serialized: <svg><foreignObject><p>x</p></foreignObject></svg>
+
+========================================================================
+EXP 10: MATHML fragment  '<math><mi definitionurl="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml></math>'
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <math math>
+|      <math mi>
+|        definitionURL="d"
+|        "x"
+|      <math annotation-xml>
+|        encoding="text/html"
+|        <html p>
+|          "hi"
+serialized: <html><head></head><body><math><mi definitionURL="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml></math></body></html>
+parse errors: ['(1, 6) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  <math math>
+|    <math mi>
+|      definitionURL="d"
+|      "x"
+|    <math annotation-xml>
+|      encoding="text/html"
+|      <html p>
+|        "hi"
+serialized: <math><mi definitionURL="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml></math>
+
+--- parseFragment(container='math') ---
+|<DOCUMENT_FRAGMENT>
+|  <math math>
+|    <math mi>
+|      definitionURL="d"
+|      "x"
+|    <math annotation-xml>
+|      encoding="text/html"
+|      <html p>
+|        "hi"
+serialized: <math><mi definitionURL="d">x</mi><annotation-xml encoding="text/html"><p>hi</p></annotation-xml></math>
+
+========================================================================
+EXP 11: attribute case in HTML vs SVG context
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html div>
+|      attributename="h"
+|      viewbox="h"
+|      "t"
+serialized: <html><head></head><body><div viewbox="h" attributename="h">t</div></body></html>
+parse errors: ['(1, 35) expected-doctype-but-got-start-tag']
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <svg svg>
+|      attributeName="a"
+|      viewBox="0 0 1 1"
+serialized: <html><head></head><body><svg viewBox="0 0 1 1" attributeName="a"></svg></body></html>
+parse errors: ['(1, 41) expected-doctype-but-got-start-tag']
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <svg svg>
+|      <svg a>
+|        xlink href="#x"
+|        xml lang="en"
+|        "t"
+serialized: <html><head></head><body><svg><a href="#x" lang="en">t</a></svg></body></html>
+parse errors: ['(1, 5) expected-doctype-but-got-start-tag']
+
+========================================================================
+EXP 12: serializer drops attribute namespaces (round-trip loss)
+========================================================================
+fragment serialized: <svg><a href="#x" lang="en">t</a></svg>
+re-parsed tree:
+|<DOCUMENT_FRAGMENT>
+|  <svg svg>
+|    <svg a>
+|      href="#x"
+|      lang="en"
+|      "t"
+
+========================================================================
+EXP 13: round-trip of a table-context fragment re-parsed as div
+========================================================================
+container=table fragment serialized: <tbody><tr><td>cell</td></tr></tbody>
+-- re-parse with container='div' --
+|<DOCUMENT_FRAGMENT>
+|  "cell"
+-- re-parse with container='table' --
+|<DOCUMENT_FRAGMENT>
+|  <html tbody>
+|    <html tr>
+|      <html td>
+|        "cell"
+
+========================================================================
+EXP 14: round-trip of a select-context fragment re-parsed as div
+========================================================================
+container=select fragment serialized: <option>one</option><option>two</option>
+-- re-parse with container='div' --
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "one"
+|  <html option>
+|    "two"
+-- re-parse with container='select' --
+|<DOCUMENT_FRAGMENT>
+|  <html option>
+|    "one"
+|  <html option>
+|    "two"
+
+========================================================================
+EXP 15: container switches tokenizer state (RCDATA/RAWTEXT)
+========================================================================
+
+--- parseFragment(container='title') ---
+|<DOCUMENT_FRAGMENT>
+|  "<b>not bold</b>"
+serialized: &lt;b&gt;not bold&lt;/b&gt;
+
+--- parseFragment(container='textarea') ---
+|<DOCUMENT_FRAGMENT>
+|  "<b>not bold</b>"
+serialized: &lt;b&gt;not bold&lt;/b&gt;
+
+--- parseFragment(container='style') ---
+|<DOCUMENT_FRAGMENT>
+|  "</style><b>x</b>"
+serialized: &lt;/style&gt;&lt;b&gt;x&lt;/b&gt;
+
+========================================================================
+EXP 16: namespaceHTMLElements=False (backend representation switch)
+========================================================================
+|<html>
+|  <head>
+|  <body>
+|    <p>
+|      "x"
+|    <svg svg>
+|      <svg circle>
+
+========================================================================
+EXP 17: full document keeps <head>/<body>; fragment has no document shell
+========================================================================
+
+--- full document parse ---
+|<html html>
+|  <html head>
+|  <html body>
+|    <html p>
+|      "hello"
+serialized: <html><head></head><body><p>hello</p></body></html>
+parse errors: ['(1, 3) expected-doctype-but-got-start-tag']
+
+--- parseFragment(container='div') ---
+|<DOCUMENT_FRAGMENT>
+|  <html p>
+|    "hello"
+serialized: <p>hello</p>
